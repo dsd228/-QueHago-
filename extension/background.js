@@ -27,6 +27,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((error) => sendResponse({ ok: false, error: error?.message || 'GUIDE_ANALYZE_FAILED' }));
     return true;
   }
+
+  if (message?.type === 'QH_GUIDE_CONTEXT') {
+    updateContext(message.origin, message.token, message.answer)
+      .then((data) => sendResponse({ ok: true, data }))
+      .catch((error) => sendResponse({ ok: false, error: error?.message || 'GUIDE_CONTEXT_FAILED' }));
+    return true;
+  }
 });
 
 async function fetchSession(rawOrigin, token) {
@@ -59,6 +66,27 @@ async function analyzePage(rawOrigin, token, page) {
   if (!response.ok) {
     const error = data?.error || `QH_GUIDE_HTTP_${response.status}`;
     throw new Error(error);
+  }
+  return data;
+}
+
+async function updateContext(rawOrigin, token, answer) {
+  const origin = normalizeOrigin(rawOrigin);
+  if (!origin) throw new Error('QH_ORIGIN_NOT_ALLOWED');
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(String(token || ''))) throw new Error('QH_TOKEN_INVALID');
+
+  const response = await fetch(`${origin}/api/guide/context`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({ token, answer }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data?.error || `QH_CONTEXT_HTTP_${response.status}`);
+    error.details = data;
+    throw error;
   }
   return data;
 }
