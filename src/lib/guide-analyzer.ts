@@ -142,6 +142,7 @@ function detectMissingChoice(goal: string, page: Required<GuidePage>): string | 
     return /\b(tramite|prestacion|servicio|especialidad|motivo|tipo de gestion|tipo de solicitud)\b/.test(text);
   });
   if (!choiceField) return null;
+  if (specificGoalTokens(goal).length) return null;
 
   const fieldText = normalize(`${choiceField.label || ""} ${choiceField.placeholder || ""} ${choiceField.context || ""}`);
   if (/especialidad/.test(fieldText)) return "¿Para qué especialidad necesitás el turno?";
