@@ -1,0 +1,23 @@
+¿QUÉHAGO? — Parche privacidad + preview
+
+Qué cambia:
+- Preview real de la captura antes de analizar.
+- Nombre, tamaño, cambiar y quitar imagen.
+- Mantiene límite de 10 MB para Server Actions.
+- La captura original no se guarda después de analizarla.
+- El texto OCR completo de imágenes tampoco se persiste.
+- Filtra identificadores sensibles e irrelevantes de facts.
+- Reduce facts a un máximo de 5 datos accionables.
+- Añade una señal visible de "Privacidad por defecto" en resultados de imagen.
+
+Instalación:
+1. Detener npm run dev con Ctrl+C.
+2. Extraer este ZIP encima de D:\quehago-codercup y reemplazar.
+3. Ejecutar:
+   npm run typecheck
+   npm run lint
+   npm run build
+4. Si todo pasa: npm run dev
+
+IMPORTANTE:
+Los análisis de imagen creados antes de este parche pueden seguir mostrando los datos antiguos porque ya estaban guardados en SQLite. Hacé un análisis nuevo para validar la minimización.

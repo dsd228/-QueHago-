@@ -1,0 +1,25 @@
+¿QUÉHAGO? — MOTOR DE ACCIONES DETERMINÍSTICO
+
+Este parche corrige el caso detectado en la prueba real: Groq devolvió solo "reminder" y por eso no aparecía Calendario.
+
+Cambio de arquitectura:
+- La IA interpreta contenido.
+- El software decide qué acciones son posibles.
+- Si existe una fecha válida, SIEMPRE aparecen Recordármelo + Agregar a mi calendario.
+- Recordármelo ya guarda un recordatorio real en SQLite.
+- Calendario usa la integración Make ya configurada.
+- Los recordatorios son idempotentes: no se duplica uno para el mismo análisis.
+- /hoy deja de ser placeholder y ordena vencidas → hoy → próximas → prioridad alta sin fecha.
+- Se puede marcar un análisis como resuelto; sale de /hoy y completa su recordatorio local.
+
+Instalación:
+1. Detener npm run dev con Ctrl+C.
+2. Copiar el contenido de este ZIP sobre D:\quehago-codercup aceptando reemplazar.
+3. Ejecutar:
+   npm run typecheck
+   npm run lint
+   npm run build
+4. Si pasa todo:
+   npm run dev
+5. Abrir el análisis que ya habías creado: no hace falta volver a consultar Groq.
+   Ahora debería mostrar Recordármelo y Agregar a mi calendario porque las acciones se derivan de la fecha.

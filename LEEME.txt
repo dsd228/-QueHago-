@@ -1,0 +1,12 @@
+PARCHE MÍNIMO — system-prompt.ts
+
+Corrige el error de TypeScript donde la regla de seguridad quedó fuera del template string.
+
+Copiar encima de:
+D:\quehago-codercup
+
+Luego ejecutar:
+npm run typecheck
+npm run lint
+npm run build
+npm run dev

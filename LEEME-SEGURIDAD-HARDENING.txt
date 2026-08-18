@@ -1,0 +1,21 @@
+¿QuéHago? — Hardening de seguridad
+
+Este parche corrige un bug crítico descubierto en la prueba real:
+el modelo podía repetir como "qué tenés que hacer" la propia instrucción del mensaje sospechoso.
+
+Ahora:
+- En categoría seguridad, la acción principal se decide de forma determinística y segura.
+- Nunca se invita a abrir el enlace recibido ni a entregar datos.
+- Las señales se derivan y presentan como: urgencia, dominio recibido, pedido sensible y contexto financiero.
+- El dominio se muestra como texto, no como llamada a la acción.
+- Se evita duplicar esas señales nuevamente en "Incertidumbres y límites".
+- El system prompt también queda reforzado como segunda barrera.
+
+Instalación:
+1. Copiar encima de D:\quehago-codercup
+2. npm run typecheck
+3. npm run lint
+4. npm run build
+5. npm run dev
+
+No necesitás repetir el análisis anterior: la protección de render aplica también a análisis ya guardados.

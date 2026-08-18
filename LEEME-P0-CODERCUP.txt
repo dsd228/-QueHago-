@@ -1,0 +1,89 @@
+¿QuéHago? — P0 CoderCup / versión candidata
+
+Este parche agrega cuatro mejoras prioritarias basadas en la auditoría competitiva:
+
+1) CONFIRMACIÓN EDITABLE
+Antes de crear un evento, ¿QuéHago? muestra y permite corregir:
+- nombre del evento
+- fecha o fecha + hora
+- duración si es un turno
+- importe si aplica
+La IA propone; el usuario confirma.
+
+2) RECIBO VERIFICABLE
+Después de crear un evento:
+- muestra qué se creó
+- cuándo
+- vía Google Calendar · Make
+- momento de ejecución
+- conserva ID y URL externos
+
+3) DESHACER REAL
+La app soporta borrar el evento real de Google Calendar.
+Requiere un segundo webhook de Make:
+MAKE_CALENDAR_DELETE_WEBHOOK_URL=
+
+Escenario Make:
+Custom webhook -> Google Calendar / Delete an Event -> Webhook response
+
+Webhook esperado:
+{
+  "event_id": "...",
+  "analysis_id": "..."
+}
+
+Mapeo:
+- Calendar ID: Primary Calendar
+- Event ID: 1.event_id
+
+Webhook response:
+Status: 200
+Body:
+{"ok":true,"event_id":"{{1.event_id}}","source":"quehago"}
+
+Usar la MISMA API key de autenticación x-make-apikey que el escenario de creación.
+
+4) HOY = CENTRO DE CONTROL
+Agrupa:
+- Necesita atención
+- Hoy
+- Próximamente
+- Resuelto
+
+Y muestra si cada caso ya tiene:
+- Calendar
+- recordatorio
+- checklist y progreso
+
+5) TURNOS CON HORA
+El system prompt conserva fecha + hora como ISO 8601.
+Para la zona America/Argentina/Cordoba usa -03:00.
+Calendar permite confirmar/corregir la hora y duración antes de ejecutar.
+
+INSTALACIÓN
+Copiar encima de:
+D:\quehago-codercup
+
+Luego:
+npm run typecheck
+npm run lint
+npm run build
+npm run dev
+
+No reemplaza .env.local.
+
+PARA HABILITAR DESHACER
+Agregar al .env.local:
+MAKE_CALENDAR_DELETE_WEBHOOK_URL=URL_DEL_SEGUNDO_WEBHOOK
+
+Prueba recomendada del tercer flujo:
+"Te recordamos tu turno con Dermatología el jueves 27 de agosto a las 16:30."
+
+Resultado esperado:
+- category = turno
+- fecha + hora = 27/08/2026 16:30
+- confirmación editable
+- duración 30 min por defecto
+- evento real en Google Calendar
+- recibo verificable
+- Deshacer (cuando el segundo webhook esté configurado)

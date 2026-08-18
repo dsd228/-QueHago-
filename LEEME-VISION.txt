@@ -1,0 +1,22 @@
+¿QUÉHAGO? — VISIÓN / CAPTURAS
+
+Qué agrega:
+- Subida real de PNG/JPG/JPEG (máx. 10 MB).
+- La imagen se procesa en memoria: NO se guarda el archivo original.
+- Groq Qwen 3.6 27B se usa únicamente como capa visual/OCR.
+- El texto extraído vuelve a pasar por GPT-OSS 120B + JSON Schema estricto.
+- El resultado guarda solo texto extraído + análisis + metadatos mínimos del archivo.
+- Las acciones determinísticas existentes (Recordatorio/Calendar/Make) siguen funcionando.
+
+No hace falta crear otra API key.
+Opcional en .env.local:
+GROQ_VISION_MODEL=qwen/qwen3.6-27b
+
+Si no agregás esa línea, usa ese modelo por defecto.
+
+Prueba recomendada:
+1. npm run typecheck
+2. npm run lint
+3. npm run build
+4. npm run dev
+5. Subir una captura con fecha e importe visibles.

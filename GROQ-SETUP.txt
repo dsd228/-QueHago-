@@ -1,0 +1,13 @@
+¿QUÉHAGO? — GROQ SETUP
+
+1) Crear/obtener una API key en Groq Console.
+2) En la raíz D:\quehago-codercup crear .env.local con:
+
+AI_PROVIDER=groq
+GROQ_API_KEY=gsk_REEMPLAZAR
+GROQ_MODEL=openai/gpt-oss-120b
+GROQ_VISION_MODEL=qwen/qwen3.6-27b
+
+3) No pegar la API key en chats, screenshots, README ni GitHub.
+4) Reiniciar npm run dev cada vez que cambie .env.local.
+5) Ollama queda disponible como fallback cambiando AI_PROVIDER=ollama.

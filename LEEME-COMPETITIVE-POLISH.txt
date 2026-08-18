@@ -1,0 +1,57 @@
+¿QuéHago? — Competitive Polish
+
+Este parche corrige cuatro grietas detectadas en las pruebas:
+
+1. PRIVACIDAD COHERENTE
+- Oculta también Cliente/Titular/Nombre del cliente y Número de factura.
+- Aplica el filtro en pantalla incluso a análisis ya guardados.
+- Máximo 3 hechos útiles en la tarjeta "Qué importa".
+
+2. PRIORIDAD DETERMINÍSTICA
+- Seguridad con riesgo medio/alto -> alta.
+- Vence en 0–2 días o vencido -> alta.
+- Vence en 3–10 días -> media.
+- Más de 10 días -> baja.
+- Sin fecha -> conserva la sugerencia del análisis.
+Así una misma factura no cambia de prioridad porque el modelo responda distinto.
+
+3. DASHBOARD SIN RUIDO
+- Agrupa análisis equivalentes repetidos.
+- Conserva el más reciente y muestra cuántos similares agrupó.
+- No borra el historial.
+
+Si querés limpiar todos nuestros tests antes del video:
+npm run demo:reset
+ATENCIÓN: elimina análisis reales no-ejemplo de la SQLite local. Usalo sólo antes de preparar la demo.
+
+4. CALENDAR MÁS LIMPIO
+- "Pagar: Factura NetConnect - Vencimiento 28/08/2026"
+  pasa a algo tipo "Pagar Factura NetConnect".
+- Mantiene fecha/hora en el campo correcto, no en el título.
+
+5. DESHACER
+Incluye:
+make/QueHago-Deshacer-Calendar.blueprint.json
+
+Importalo como un escenario NUEVO en Make.
+Luego:
+- creá el Custom webhook;
+- agregale la misma autenticación API key;
+- conectá tu Google Calendar;
+- comprobá que el módulo central sea "Delete an Event";
+- Calendar ID: Primary Calendar;
+- Event ID: 1.event_id;
+- activá el escenario.
+
+Después agregá a .env.local:
+MAKE_CALENDAR_DELETE_WEBHOOK_URL=URL_DEL_WEBHOOK_DE_DESHACER
+
+La app ya tiene el botón Deshacer y la lógica para registrar la reversión.
+
+Instalación del parche:
+1. Ctrl+C
+2. Copiar encima de D:\quehago-codercup
+3. npm run typecheck
+4. npm run lint
+5. npm run build
+6. npm run dev

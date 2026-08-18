@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+data/*.db
+data/*.db-wal
+data/*.db-shm
+npm-debug.log*
+.DS_Store
+
+*.tsbuildinfo
+*.zip

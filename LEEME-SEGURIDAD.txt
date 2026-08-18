@@ -1,0 +1,19 @@
+¿QuéHago? — Etapa Seguridad / CoderCup
+
+Copiá el contenido de este ZIP encima de D:\quehago-codercup y aceptá reemplazar.
+
+Agrega:
+- Acciones de seguridad determinísticas: Ver señales + Crear checklist.
+- Checklist persistente en SQLite con progreso y marcado paso a paso.
+- Protocolo visual para riesgo medio/alto.
+- Para trámites con documentación también habilita checklist.
+- System prompt reforzado para priorizar señales observables y no afirmar fraude como certeza.
+
+Después:
+npm run typecheck
+npm run lint
+npm run build
+npm run dev
+
+Prueba:
+Banco Nación: bloqueamos su cuenta. Ingrese inmediatamente a http://bna-validacion-premios.example para verificar sus datos.

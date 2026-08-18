@@ -1,0 +1,141 @@
+{
+  "name": "QueHago - Crear evento en Google Calendar",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {},
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "¿QuéHago? - Entrada"
+        },
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          },
+          {
+            "name": "maxResults",
+            "type": "number",
+            "label": "Maximum number of results"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "google-calendar:createAnEvent",
+      "version": 5,
+      "parameters": {},
+      "mapper": {
+        "select": "detail",
+        "calendar": "primary",
+        "summary": "{{1.title}}",
+        "allDayEvent": "{{1.all_day}}",
+        "start": "{{1.start}}",
+        "end": "{{1.end}}",
+        "description": "{{1.description}}",
+        "location": "{{1.location}}",
+        "visibility": "default",
+        "transparency": "opaque",
+        "conferenceDate": false,
+        "guestsCanModify": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 360,
+          "y": 0,
+          "name": "Google Calendar - Crear evento"
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:google",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "select": {
+              "label": "In Detail"
+            },
+            "calendar": {
+              "mode": "chose",
+              "label": "Primary Calendar"
+            },
+            "visibility": {
+              "mode": "chose",
+              "label": "Default"
+            },
+            "allDayEvent": {
+              "mode": "map"
+            },
+            "transparency": {
+              "mode": "chose",
+              "label": "Busy"
+            },
+            "conferenceDate": {
+              "mode": "chose"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "status": "200",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json; charset=UTF-8"
+          }
+        ],
+        "body": "{\"ok\":true,\"event_id\":\"{{2.id}}\",\"event_url\":\"{{2.htmlLink}}\",\"source\":\"quehago\"}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 720,
+          "y": 0,
+          "name": "Responder a ¿QuéHago?"
+        },
+        "restore": {
+          "expect": {
+            "headers": {
+              "mode": "chose"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "slots": null,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}

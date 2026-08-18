@@ -1,0 +1,28 @@
+¿QUÉHAGO? — CONEXIÓN REAL CON MAKE + GOOGLE CALENDAR
+
+1) Este parche se aplica ENCIMA de la carpeta actual D:\quehago-codercup.
+2) Mantené tu GROQ_API_KEY actual.
+3) Agregá a .env.local:
+
+MAKE_CALENDAR_WEBHOOK_URL=https://hook....make.com/...
+MAKE_CALENDAR_WEBHOOK_API_KEY=tu_api_key_configurada_en_make
+
+4) Reiniciá Next.js después de guardar .env.local.
+5) Probá:
+   npm run typecheck
+   npm run lint
+   npm run build
+   npm run dev
+
+6) Hacé un análisis REAL de una factura con fecha.
+7) En el resultado abrí “Agregar a mi calendario”.
+8) Confirmá “Sí, crear evento”.
+
+Comportamiento esperado:
+- ¿QuéHago? llama a Make sólo desde el servidor.
+- Make crea el evento en Google Calendar.
+- ¿QuéHago? guarda event_id + event_url + fecha de sincronización.
+- La pantalla muestra “Ya está en tu calendario”.
+- Volver a pulsar no crea duplicados.
+- Los análisis de ejemplo NO ejecutan automatizaciones reales.
+- El contenido original completo NO se envía a Make.
