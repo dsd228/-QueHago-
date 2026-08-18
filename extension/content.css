@@ -134,6 +134,31 @@
   margin-bottom: 12px;
 }
 
+#quehago-guide-root input[type="text"] {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid #454a52;
+  border-radius: 11px;
+  padding: 10px 12px;
+  background: #111318;
+  color: #fff;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+}
+
+#quehago-guide-root input[type="text"]:focus {
+  border-color: #b7ff54;
+  box-shadow: 0 0 0 3px rgba(183,255,84,.12);
+}
+
+#quehago-guide-root input[type="text"]::placeholder {
+  color: #737983;
+}
+
 #quehago-guide-root .qh-verification {
   margin: 10px 0;
   padding: 10px 12px;
