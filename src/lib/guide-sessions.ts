@@ -154,6 +154,27 @@ export function getGuideSession(token: string): GuideSession | null {
   return session;
 }
 
+export function appendGuideSessionContext(token: string, answer: string): GuideSession | null {
+  const session = getGuideSession(token);
+  if (!session || session.status !== "active") return null;
+
+  const cleanAnswer = String(answer || "").replace(/\s+/g, " ").trim().slice(0, 200);
+  if (!cleanAnswer) return session;
+
+  const marker = "Aclaración del usuario:";
+  const baseGoal = session.goal.includes(marker) ? session.goal.split(marker)[0].trim() : session.goal.trim();
+  const nextGoal = `${baseGoal}\n${marker} ${cleanAnswer}`.slice(0, 500);
+
+  const db = ensureGuideSessionsTable();
+  db.prepare(`
+    UPDATE guide_sessions
+    SET goal = ?
+    WHERE token = ? AND status = 'active'
+  `).run(nextGoal, token);
+
+  return getGuideSession(token);
+}
+
 export function completeGuideSession(token: string): void {
   const db = ensureGuideSessionsTable();
   db.prepare(`
