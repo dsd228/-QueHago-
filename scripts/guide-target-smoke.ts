@@ -105,5 +105,32 @@ assert.match(missingChoice.clarification || "", /trámite/i);
 
 const specifiedChoice = heuristicGuidePlan("Solicitar un turno en ANSES para jubilación", ansesChoicePage);
 assert.equal(specifiedChoice.clarification, null, "Con un trámite específico puede continuar");
+assert.ok(specifiedChoice.steps.some((step) => /jubil/i.test(`${step.target_text} ${step.instruction}`)), "Debe conservar una coincidencia específica con jubilación");
 
-console.log("Verified guide target repair + clarification OK");
+const miAnsesGenericPage = sanitizeGuidePage({
+  title: "mi ANSES",
+  url: "https://www.anses.gob.ar/mi-anses",
+  text: "Canal de atención digital de ANSES",
+  elements: [
+    {
+      id: "qh-general-search",
+      tag: "input",
+      type: "search",
+      placeholder: "Buscá en ANSES",
+      name: "buscador",
+      context: "Buscador general del sitio",
+    },
+    {
+      id: "qh-mi-anses",
+      tag: "a",
+      text: "mi ANSES",
+      context: "Acceso al canal digital",
+    },
+  ],
+});
+
+const genericFallback = heuristicGuidePlan("Solicitar un turno en ANSES", miAnsesGenericPage);
+assert.equal(genericFallback.steps.length, 0, "El fallback no debe mandar al buscador general por coincidencias genéricas");
+assert.match(genericFallback.clarification || "", /trámite/i, "Debe pedir el dato específico que falta");
+
+console.log("Verified guide target repair + clarification + conservative fallback OK");
