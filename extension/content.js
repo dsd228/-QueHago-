@@ -131,6 +131,12 @@
     }
 
     plan = response.data.plan;
+
+    if (typeof plan.clarification === 'string' && plan.clarification.trim()) {
+      renderClarification(plan.clarification.trim());
+      return;
+    }
+
     if (!Array.isArray(plan.steps) || !plan.steps.length) {
       showStandaloneMessage('No encontré controles suficientemente claros para continuar. Podés seguir manualmente sin que ¿QuéHago? toque nada.', 'neutral');
       return;
@@ -232,6 +238,70 @@
   function getContext(el) {
     const owner = el.closest('label,fieldset,form,section,article,main,[role="group"],[role="region"]');
     return clean(owner?.innerText || '').slice(0, 360);
+  }
+
+  function renderClarification(question) {
+    root = document.createElement('div');
+    root.id = 'quehago-guide-root';
+    root.innerHTML = `
+      <section class="qh-panel" role="dialog" aria-label="¿QuéHago? necesita una decisión" aria-live="polite">
+        <div class="qh-head">
+          <span class="qh-mark" aria-hidden="true">Q</span>
+          <div><strong>¿QuéHago?</strong><small>Guía verificada · ${escapeHtml(sessionContext.sourceName)}</small></div>
+          <button class="qh-close" type="button" aria-label="Cerrar guía">×</button>
+        </div>
+        <div class="qh-trust">✓ Dominio oficial permitido</div>
+        <div class="qh-meta"><span>Necesito una decisión tuya</span><span>NO INVENTO</span></div>
+        <h2 data-qh-question></h2>
+        <p class="qh-why">Sin este dato no puedo elegir el siguiente trámite de forma segura.</p>
+        <form data-qh-clarify-form>
+          <label class="qh-target" for="qh-clarification">Escribí sólo el nombre o tipo de trámite:</label>
+          <input id="qh-clarification" name="clarification" type="text" maxlength="200" autocomplete="off" placeholder="Ej.: Solicitud de Jubilación" required />
+          <p class="qh-verification" data-qh-clarify-status>No escribas CUIL, DNI, claves, códigos, teléfonos ni correos.</p>
+          <div class="qh-actions">
+            <button class="qh-prev" type="button" data-qh-cancel>Cerrar</button>
+            <button class="qh-next" type="submit" data-qh-submit>Continuar</button>
+          </div>
+        </form>
+        <p class="qh-note">Tu respuesta se usa sólo para continuar esta sesión de guía.</p>
+      </section>`;
+
+    root.querySelector('[data-qh-question]').textContent = question;
+    root.querySelector('.qh-close').addEventListener('click', stopSession);
+    root.querySelector('[data-qh-cancel]').addEventListener('click', stopSession);
+    root.querySelector('[data-qh-clarify-form]').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const input = root?.querySelector('#qh-clarification');
+      const status = root?.querySelector('[data-qh-clarify-status]');
+      const submit = root?.querySelector('[data-qh-submit]');
+      const answer = clean(input?.value || '');
+      if (answer.length < 2) {
+        status.textContent = 'Escribí el tipo de trámite para poder continuar.';
+        return;
+      }
+
+      submit.disabled = true;
+      status.textContent = 'Guardando tu elección de forma segura…';
+      const response = await chrome.runtime.sendMessage({
+        type: 'QH_GUIDE_CONTEXT',
+        origin: sessionContext.origin,
+        token: sessionContext.token,
+        answer,
+      });
+
+      if (!response?.ok) {
+        submit.disabled = false;
+        status.textContent = response?.error === 'SENSITIVE_CONTEXT_REJECTED'
+          ? 'No uses datos personales acá. Escribí sólo el nombre del trámite.'
+          : 'No pude guardar esa elección. Probá nuevamente.';
+        return;
+      }
+
+      await analyzeCurrentPage();
+    });
+
+    document.documentElement.appendChild(root);
+    setTimeout(() => root?.querySelector('#qh-clarification')?.focus(), 100);
   }
 
   function renderPanel() {
