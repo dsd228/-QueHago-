@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [pivot/verified-actions]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Trusted source smoke
+        run: npm run trust:smoke
+
+      - name: Verified guide smoke
+        run: npm run guide:smoke
+
+      - name: Database smoke
+        run: npm run db:smoke
+
+      - name: Extension syntax
+        run: |
+          node --check extension/background.js
+          node --check extension/step-verifier.js
+          node --check extension/content.js
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8')); if(m.manifest_version!==3) process.exit(1); if(!m.content_scripts?.[0]?.js?.includes('step-verifier.js')) process.exit(1); console.log('Extension manifest OK')"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
