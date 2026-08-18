@@ -42,9 +42,9 @@ const STOPWORDS = new Set([
 
 const GENERIC_ACTION_WORDS = new Set([
   ...STOPWORDS,
-  "solicitar", "sacar", "pedir", "reservar", "agendar", "gestionar", "resolver",
+  "solicitar", "sacar", "pedir", "reservar", "agendar", "gestionar", "resolver", "consultar", "buscar", "ver", "abrir", "ingresar", "acceder",
   "turno", "turnos", "cita", "citas", "tramite", "tramites", "gestion", "gestiones",
-  "anses", "arca", "argentina", "banco", "nacion", "nacional", "oficial", "sitio", "web",
+  "anses", "arca", "argentina", "banco", "nacion", "nacional", "oficial", "sitio", "web", "pagina", "portal",
 ]);
 
 const NOISE = ["inicio", "home", "promociones", "beneficios", "newsletter", "publicidad", "ayuda", "faq", "preguntas frecuentes", "redes sociales"];
@@ -97,6 +97,12 @@ function inferAction(item: GuideElement): GuideStep["action"] {
   return "focus";
 }
 
+function specificGoalTokens(goal: string): string[] {
+  return normalize(goal)
+    .split(" ")
+    .filter((token) => token.length > 3 && !GENERIC_ACTION_WORDS.has(token));
+}
+
 function scoreElement(goal: string, element: GuideElement): number {
   const haystack = normalize([
     element.label,
@@ -108,16 +114,27 @@ function scoreElement(goal: string, element: GuideElement): number {
     element.type,
     element.context,
   ].filter(Boolean).join(" "));
-  const tokens = normalize(goal).split(" ").filter((token) => token.length > 2 && !STOPWORDS.has(token));
+  const tokens = specificGoalTokens(goal);
   let score = 0;
   for (const token of tokens) if (haystack.includes(token)) score += token.length >= 6 ? 4 : 2.5;
-  if (["button", "select", "input", "textarea", "a"].includes(normalize(element.tag))) score += 1;
+  if (tokens.length && ["button", "select", "input", "textarea", "a"].includes(normalize(element.tag))) score += 1;
   if (NOISE.some((word) => haystack === word || haystack.startsWith(`${word} `))) score -= 5;
   if (element.disabled) score -= 30;
   return score;
 }
 
+function genericGoalClarification(goal: string): string | null {
+  if (specificGoalTokens(goal).length) return null;
+  const normalizedGoal = normalize(goal);
+  if (/\b(turno|turnos|cita|citas)\b/.test(normalizedGoal)) return "¿Para qué trámite necesitás el turno?";
+  if (/\b(tramite|tramites|gestion|gestiones)\b/.test(normalizedGoal)) return "¿Qué trámite o gestión necesitás resolver?";
+  return null;
+}
+
 function detectMissingChoice(goal: string, page: Required<GuidePage>): string | null {
+  const generic = genericGoalClarification(goal);
+  if (generic) return generic;
+
   const choiceField = page.elements.find((element) => {
     const tag = normalize(element.tag);
     if (tag !== "input" && tag !== "textarea" && tag !== "select") return false;
@@ -125,12 +142,6 @@ function detectMissingChoice(goal: string, page: Required<GuidePage>): string | 
     return /\b(tramite|prestacion|servicio|especialidad|motivo|tipo de gestion|tipo de solicitud)\b/.test(text);
   });
   if (!choiceField) return null;
-
-  const specificGoalTokens = normalize(goal)
-    .split(" ")
-    .filter((token) => token.length > 3 && !GENERIC_ACTION_WORDS.has(token));
-
-  if (specificGoalTokens.length) return null;
 
   const fieldText = normalize(`${choiceField.label || ""} ${choiceField.placeholder || ""} ${choiceField.context || ""}`);
   if (/especialidad/.test(fieldText)) return "¿Para qué especialidad necesitás el turno?";
@@ -159,9 +170,22 @@ export function heuristicGuidePlan(goal: string, page: Required<GuidePage>): Gui
     };
   }
 
+  const specificTokens = specificGoalTokens(goal);
+  if (!specificTokens.length) {
+    return {
+      goal,
+      summary: "El objetivo es demasiado general para elegir un control con seguridad.",
+      steps: [],
+      clarification: null,
+      confidence: 0.1,
+      warnings: ["Modo resiliente: no hubo una coincidencia específica suficiente para guiar."],
+      mode: "fallback",
+    };
+  }
+
   const scored = page.elements
     .map((element, order) => ({ ...element, _score: scoreElement(goal, element), _order: order }))
-    .filter((element) => element.id && element._score > 1)
+    .filter((element) => element.id && element._score >= 4)
     .sort((a, b) => b._score - a._score || a._order - b._order)
     .slice(0, 5)
     .sort((a, b) => a._order - b._order);
@@ -174,17 +198,17 @@ export function heuristicGuidePlan(goal: string, page: Required<GuidePage>): Gui
       target_id: item.id,
       target_text: label,
       action,
-      why: "Es uno de los controles reales más relacionados con el objetivo.",
+      why: "Es un control real con una coincidencia específica con tu objetivo.",
     };
   });
 
   return {
     goal,
-    summary: steps.length ? `Encontré ${steps.length} controles relevantes en la página actual.` : "No pude identificar controles seguros para continuar.",
+    summary: steps.length ? `Encontré ${steps.length} controles con coincidencia específica en la página actual.` : "No pude identificar controles seguros para continuar.",
     steps,
     clarification: null,
-    confidence: steps.length ? 0.58 : 0.2,
-    warnings: ["Modo resiliente: se usó análisis determinístico local."],
+    confidence: steps.length ? 0.62 : 0.2,
+    warnings: ["Modo resiliente: sólo se aceptaron coincidencias específicas del objetivo."],
     mode: "fallback",
   };
 }
