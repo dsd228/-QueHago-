@@ -33,6 +33,33 @@ type GuideSessionRow = {
   completed_at: string | null;
 };
 
+function ensureGuideSessionsTable() {
+  const db = getDb();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guide_sessions (
+      token TEXT PRIMARY KEY,
+      analysis_id TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      source_name TEXT NOT NULL,
+      official_url TEXT NOT NULL,
+      trusted_domains_json TEXT NOT NULL DEFAULT '[]',
+      goal TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed','cancelled')),
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      completed_at TEXT,
+      FOREIGN KEY (analysis_id) REFERENCES analyses(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guide_sessions_analysis
+      ON guide_sessions(analysis_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_guide_sessions_status_expiry
+      ON guide_sessions(status, expires_at);
+  `);
+  return db;
+}
+
 function trustText(item: AnalysisRecord): string {
   return [
     item.rawText ?? "",
@@ -77,7 +104,7 @@ export function createGuideSession(item: AnalysisRecord): GuideSession {
   const source = getGuideSource(item);
   if (!source) throw new Error("GUIDE_SOURCE_UNKNOWN");
 
-  const db = getDb();
+  const db = ensureGuideSessionsTable();
   const token = randomBytes(18).toString("base64url");
   const createdAt = new Date();
   const expiresAt = new Date(createdAt.getTime() + 30 * 60 * 1000);
@@ -117,7 +144,7 @@ export function createGuideSession(item: AnalysisRecord): GuideSession {
 
 export function getGuideSession(token: string): GuideSession | null {
   if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) return null;
-  const db = getDb();
+  const db = ensureGuideSessionsTable();
   const row = db.prepare("SELECT * FROM guide_sessions WHERE token = ? LIMIT 1").get(token) as GuideSessionRow | undefined;
   if (!row) return null;
 
@@ -128,7 +155,7 @@ export function getGuideSession(token: string): GuideSession | null {
 }
 
 export function completeGuideSession(token: string): void {
-  const db = getDb();
+  const db = ensureGuideSessionsTable();
   db.prepare(`
     UPDATE guide_sessions
     SET status = 'completed', completed_at = ?
