@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { analyzeGuidePage, sanitizeGuidePage, type GuidePage } from "@/lib/guide-analyzer";
 import { getGuideSession } from "@/lib/guide-sessions";
+import { repairAmbiguousGuideTargets } from "@/lib/guide-target-repair";
 import { normalizeHost } from "@/lib/trusted-sources";
 
 const MAX_BODY_BYTES = 180_000;
@@ -67,7 +68,9 @@ export async function POST(request: Request) {
     }, 403);
   }
 
-  const plan = await analyzeGuidePage(session.goal, page);
+  const analyzed = await analyzeGuidePage(session.goal, page);
+  const plan = repairAmbiguousGuideTargets(analyzed, page.elements);
+
   return json({
     ok: true,
     sourceName: session.sourceName,
