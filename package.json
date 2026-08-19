@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "eslint .",
     "db:smoke": "node --experimental-strip-types scripts/db-smoke.ts",
+    "trust:smoke": "node --experimental-strip-types scripts/trust-smoke.ts",
+    "guide:smoke": "node --experimental-strip-types scripts/guide-target-smoke.ts",
     "typecheck": "tsc --noEmit",
     "demo:reset": "node --experimental-strip-types scripts/demo-reset.ts"
   },
