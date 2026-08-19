@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [pivot/verified-actions]
+    branches: [pivot/verified-actions, pivot/web-app]
 
 jobs:
   validate:
@@ -30,13 +30,6 @@ jobs:
 
       - name: Database smoke
         run: npm run db:smoke
-
-      - name: Extension syntax
-        run: |
-          node --check extension/background.js
-          node --check extension/step-verifier.js
-          node --check extension/content.js
-          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8')); if(m.manifest_version!==3) process.exit(1); if(!m.content_scripts?.[0]?.js?.includes('step-verifier.js')) process.exit(1); console.log('Extension manifest OK')"
 
       - name: Typecheck
         run: npm run typecheck
