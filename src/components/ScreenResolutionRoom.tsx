@@ -32,6 +32,8 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
   const [working, setWorking] = useState(false);
   const [result, setResult] = useState<ScreenGuideResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clarification, setClarification] = useState("");
+  const [goalText, setGoalText] = useState(goal);
 
   useEffect(() => () => stopSharing(), []);
 
@@ -41,11 +43,9 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
 
   async function startSharing() {
     setError(null);
+    setResult(null);
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-      });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -70,9 +70,25 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
     setSharing(false);
   }
 
-  async function analyzeFrame() {
+  async function captureFrame(): Promise<string> {
     const video = videoRef.current;
-    if (!video || !sharing || !video.videoWidth || !video.videoHeight) {
+    if (!video || !sharing || !video.videoWidth || !video.videoHeight) throw new Error("SCREEN_NOT_SHARED");
+
+    const maxWidth = 1280;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    const width = Math.max(1, Math.round(video.videoWidth * scale));
+    const height = Math.max(1, Math.round(video.videoHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("CANVAS_UNAVAILABLE");
+    context.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.78);
+  }
+
+  async function analyzeFrame() {
+    if (!sharing) {
       setError("Primero compartí la ventana del sitio oficial.");
       return;
     }
@@ -80,18 +96,7 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
     setWorking(true);
     setError(null);
     try {
-      const maxWidth = 1280;
-      const scale = Math.min(1, maxWidth / video.videoWidth);
-      const width = Math.max(1, Math.round(video.videoWidth * scale));
-      const height = Math.max(1, Math.round(video.videoHeight * scale));
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d", { alpha: false });
-      if (!context) throw new Error("CANVAS_UNAVAILABLE");
-      context.drawImage(video, 0, 0, width, height);
-      const image = canvas.toDataURL("image/jpeg", 0.78);
-
+      const image = await captureFrame();
       const response = await fetch("/api/resolver/vision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,51 +117,79 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
     }
   }
 
+  async function submitClarification() {
+    const answer = clarification.replace(/\s+/g, " ").trim();
+    if (answer.length < 2) return;
+    setWorking(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/guide/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ token, answer }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || data?.error || `HTTP_${response.status}`);
+      setGoalText(`${goal} · ${answer}`);
+      setClarification("");
+      setResult(null);
+      if (sharing) await analyzeFrame();
+    } catch (contextError) {
+      const message = contextError instanceof Error ? contextError.message : "No pude guardar la aclaración.";
+      setError(message);
+    } finally {
+      setWorking(false);
+    }
+  }
+
   const expires = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit" }).format(new Date(expiresAt));
 
   return (
-    <section className="resolution-room">
-      <aside className="resolution-side">
-        <div className="resolution-trust">
-          <span className="verified-chip">Fuente registrada</span>
-          <h2>{sourceName}</h2>
-          <p>El recorrido parte del sitio oficial guardado por ¿QuéHago?.</p>
+    <section className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="self-start rounded-[22px] border border-[var(--line)] bg-[var(--surface-strong)] p-5 lg:sticky lg:top-5">
+        <div className="mb-5">
+          <span className="verified-chip">Fuente de partida registrada</span>
+          <h2 className="mt-3 mb-1 text-2xl font-bold tracking-[-.03em]">{sourceName}</h2>
+          <p className="text-sm text-[var(--muted)]">El recorrido empieza desde la URL oficial guardada por ¿QuéHago?.</p>
         </div>
 
-        <div className="resolution-goal">
+        <div className="mb-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <p className="eyebrow">Objetivo</p>
-          <strong>{goal}</strong>
+          <strong className="block leading-snug">{goalText}</strong>
         </div>
 
-        <ol className="resolution-steps">
-          <li><strong>1.</strong> Abrí la fuente oficial.</li>
-          <li><strong>2.</strong> Compartí sólo esa ventana.</li>
-          <li><strong>3.</strong> Analizá cada estado cuando lo necesites.</li>
-          <li><strong>4.</strong> Para claves, códigos o datos sensibles, la captura se corta.</li>
+        <ol className="mb-5 grid gap-3 pl-0 text-sm text-[var(--muted)]">
+          <li><strong className="text-[var(--ink)]">1.</strong> Abrí la fuente oficial.</li>
+          <li><strong className="text-[var(--ink)]">2.</strong> Compartí sólo esa ventana.</li>
+          <li><strong className="text-[var(--ink)]">3.</strong> Analizá el estado antes de actuar.</li>
+          <li><strong className="text-[var(--ink)]">4.</strong> Si aparece un dato sensible, la captura se corta.</li>
         </ol>
 
-        <button className="button button-primary" type="button" onClick={openOfficialSite}>Abrir {sourceName}</button>
-        {!sharing ? (
-          <button className="button button-secondary" type="button" onClick={startSharing}>Compartir ventana oficial</button>
-        ) : (
-          <button className="button button-secondary" type="button" onClick={stopSharing}>Detener captura</button>
-        )}
+        <div className="grid gap-2">
+          <button className="button button-primary" type="button" onClick={openOfficialSite}>Abrir {sourceName}</button>
+          {!sharing ? (
+            <button className="button button-secondary" type="button" onClick={startSharing}>Compartir ventana oficial</button>
+          ) : (
+            <button className="button button-secondary" type="button" onClick={stopSharing}>Detener captura</button>
+          )}
+        </div>
 
-        <small className="resolution-expiry">Sesión disponible hasta las {expires}.</small>
+        <p className="mt-4 mb-0 text-xs text-[var(--muted)]">Sesión disponible hasta las {expires}.</p>
       </aside>
 
-      <div className="resolution-workspace">
-        <div className="resolution-preview" data-sharing={sharing ? "true" : "false"}>
-          <video ref={videoRef} muted playsInline />
+      <div className="grid min-w-0 gap-4">
+        <div className="relative min-h-[360px] overflow-hidden rounded-[22px] border border-[var(--line)] bg-[#111]">
+          <video ref={videoRef} muted playsInline className="block h-auto w-full" />
           {!sharing ? (
-            <div className="resolution-empty">
+            <div className="absolute inset-0 grid place-content-center gap-2 p-8 text-center text-white">
               <strong>Tu pantalla no se está compartiendo.</strong>
-              <p>¿QuéHago? sólo recibe una imagen cuando tocás analizar.</p>
+              <p className="m-0 max-w-md text-sm text-white/70">¿QuéHago? no transmite video en segundo plano. Sólo manda un fotograma cuando pedís analizar o verificar.</p>
             </div>
           ) : null}
           {sharing && result?.target ? (
             <div
-              className="resolution-target"
+              className="pointer-events-none absolute rounded-xl border-4 border-[#b7ff54] shadow-[0_0_0_4px_rgba(0,0,0,.72),0_0_0_9px_rgba(183,255,84,.24)]"
               style={{
                 left: `${result.target.x * 100}%`,
                 top: `${result.target.y * 100}%`,
@@ -168,28 +201,49 @@ export default function ScreenResolutionRoom({ token, goal, sourceName, official
           ) : null}
         </div>
 
-        <div className="resolution-controls">
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <strong className="block">Checkpoint visual</strong>
+            <p className="m-0 text-sm text-[var(--muted)]">No escribas CUIL, DNI, claves o códigos mientras la captura esté activa.</p>
+          </div>
           <button className="button button-primary" type="button" disabled={!sharing || working} onClick={analyzeFrame}>
             {working ? "Analizando…" : result ? "Verificar cambio" : "Analizar pantalla"}
           </button>
-          <p>La imagen puntual se usa para decidir el próximo paso y no se guarda como archivo del caso.</p>
         </div>
 
         {error ? <p className="automation-error" role="alert">{error}</p> : null}
 
         {result ? (
-          <section className={`resolution-guidance guidance-${result.status}`} aria-live="polite">
+          <section className="rounded-[22px] border border-[var(--line)] bg-[var(--surface-strong)] p-5" aria-live="polite">
             <div className="receipt-heading">
               <div>
-                <p className="eyebrow">{result.status === "complete" ? "Resultado detectado" : "Próximo paso"}</p>
-                <h2>{result.instruction}</h2>
+                <p className="eyebrow">{result.status === "complete" ? "Resultado detectado" : result.status === "sensitive" ? "Privacidad" : "Próximo paso"}</p>
+                <h2 className="mb-2 text-2xl tracking-[-.03em]">{result.instruction}</h2>
               </div>
               <span className="review-chip">{Math.round(result.confidence * 100)}% confianza</span>
             </div>
-            <p>{result.reason}</p>
-            {result.question ? <p><strong>{result.question}</strong></p> : null}
+            <p className="text-[var(--muted)]">{result.reason}</p>
+
+            {result.status === "clarify" && result.question ? (
+              <div className="mt-4 grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <strong>{result.question}</strong>
+                <input
+                  className="min-h-11 rounded-xl border border-[#c8c7c0] bg-white px-3"
+                  value={clarification}
+                  onChange={(event) => setClarification(event.target.value)}
+                  placeholder="Ej.: Solicitud de Jubilación"
+                  maxLength={200}
+                />
+                <p className="m-0 text-xs text-[var(--muted)]">Escribí sólo el tipo de trámite. No ingreses DNI, CUIL, correo, teléfono, claves ni códigos.</p>
+                <button className="button button-primary" type="button" disabled={working || clarification.trim().length < 2} onClick={submitClarification}>Usar esta aclaración</button>
+              </div>
+            ) : null}
+
             {result.status === "sensitive" ? (
-              <p className="privacy-inline">Captura detenida. Completá el dato sensible directamente en el sitio y después volvé a compartir.</p>
+              <div className="mt-4 rounded-2xl border border-[#b8cce8] bg-[#f3f7fd] p-4">
+                <strong>Captura detenida.</strong>
+                <p className="mt-1 mb-0 text-sm">Completá el dato directamente en el sitio oficial. Después volvé a ¿QuéHago? y compartí nuevamente la ventana.</p>
+              </div>
             ) : null}
           </section>
         ) : null}
