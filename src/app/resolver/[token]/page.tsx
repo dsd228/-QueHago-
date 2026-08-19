@@ -10,12 +10,13 @@ export default async function ResolverPage({ params }: { params: Promise<{ token
   if (!session || session.status !== "active") notFound();
 
   return (
-    <main className="resolution-page">
-      <section className="resolution-heading">
-        <p className="eyebrow">Resolución guiada</p>
-        <h1>{session.goal}</h1>
-        <p>
-          Fuente de partida verificada: <strong>{session.sourceName}</strong> · {session.trustedDomains[0]}
+    <main className="mx-auto grid w-full max-w-[1180px] gap-8 px-4 py-10 sm:px-0 sm:py-14">
+      <section className="max-w-4xl">
+        <p className="eyebrow">Resolución guiada · web</p>
+        <h1 className="mb-4 max-w-[15ch] text-[clamp(2.5rem,6vw,4.8rem)] leading-[.98] tracking-[-.055em]">{session.goal}</h1>
+        <p className="max-w-3xl text-lg text-[var(--muted)]">
+          Fuente de partida registrada: <strong className="text-[var(--ink)]">{session.sourceName}</strong> · {session.trustedDomains[0]}.
+          ¿QuéHago? no puede leer otra pestaña por detrás: vos compartís la ventana cuando querés un checkpoint visual.
         </p>
       </section>
 
